@@ -769,3 +769,55 @@ render();
 </script>
 </body>
 </html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Inicjalizacja klienta Supabase
+  const supabaseUrl = 'https://TWOJ-PROJEKT.supabase.co'
+  const supabaseKey = 'TWOJ-ANON-KEY'
+  const _supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
+
+  // Funkcja pobierająca dane
+  async function loadData() {
+    const { data, error } = await _supabase
+      .from('tracked_items')
+      .select('*')
+      .order('expiration_date', { ascending: true })
+
+    if (error) {
+      console.error('Błąd:', error)
+      return
+    }
+
+    console.log('Dane z bazy:', data)
+    // Tutaj dopiszesz kod, który wyświetla te dane w Twojej tabeli
+  }
+
+  // Odpalenie funkcji po załadowaniu strony
+  document.addEventListener('DOMContentLoaded', loadData)
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // 1. Połączenie z Twoją bazą Supabase
+  const supabaseUrl = 'https://syqrqsqfajepsulzqpbw.supabase.co';
+  const supabaseKey = 'sb_publishable_d9RER-s_ZGMLImJpWb-Wrg_x7ZIdvb1';
+  const _supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+  // 2. Funkcja sprawdzająca połączenie i pobierająca dane
+  async function loadData() {
+    const { data, error } = await _supabase
+      .from('tracked_items')
+      .select('*')
+      .order('expiration_date', { ascending: true });
+
+    if (error) {
+      console.error('Błąd połączenia z bazą:', error);
+      return;
+    }
+
+    console.log('Połączono pomyślnie! Dane z bazy:', data);
+  }
+
+  // 3. Uruchomienie po załadowaniu strony
+  document.addEventListener('DOMContentLoaded', loadData);
+</script>
+
