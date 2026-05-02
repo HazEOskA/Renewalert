@@ -767,57 +767,92 @@ render();
 
 })();
 </script>
-</body>
-</html>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  // Inicjalizacja klienta Supabase
-  const supabaseUrl = 'https://TWOJ-PROJEKT.supabase.co'
-  const supabaseKey = 'TWOJ-ANON-KEY'
-  const _supabase = window.supabase.createClient(supabaseUrl, supabaseKey)
-
-  // Funkcja pobierająca dane
-  async function loadData() {
-    const { data, error } = await _supabase
-      .from('tracked_items')
-      .select('*')
-      .order('expiration_date', { ascending: true })
-
-    if (error) {
-      console.error('Błąd:', error)
-      return
-    }
-
-    console.log('Dane z bazy:', data)
-    // Tutaj dopiszesz kod, który wyświetla te dane w Twojej tabeli
-  }
-
-  // Odpalenie funkcji po załadowaniu strony
-  document.addEventListener('DOMContentLoaded', loadData)
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  // 1. Połączenie z Twoją bazą Supabase
   const supabaseUrl = 'https://syqrqsqfajepsulzqpbw.supabase.co';
   const supabaseKey = 'sb_publishable_d9RER-s_ZGMLImJpWb-Wrg_x7ZIdvb1';
   const _supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-  // 2. Funkcja sprawdzająca połączenie i pobierająca dane
-  async function loadData() {
-    const { data, error } = await _supabase
-      .from('tracked_items')
-      .select('*')
-      .order('expiration_date', { ascending: true });
-
-    if (error) {
-      console.error('Błąd połączenia z bazą:', error);
-      return;
+  // 1. Zastępujemy lokalną przeglądarkę potężną bazą
+  async function syncSupabase() {
+    const { data } = await _supabase.from('tracked_items').select('*');
+    if (data) {
+      entries = data.map(row => ({
+        id: row.id,
+        name: row.name,
+        type: row.item_type,
+        expiry: row.expiration_date,
+        value: row.value || 0,
+        owner: row.owner_name || '',
+        notes: row.notes || ''
+      }));
+      render(); 
     }
-
-    console.log('Połączono pomyślnie! Dane z bazy:', data);
   }
 
-  // 3. Uruchomienie po załadowaniu strony
-  document.addEventListener('DOMContentLoaded', loadData);
+  // 2. Przechwytujemy intencje użytkownika na stronie w tle
+  document.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.edit-btn');
+    if (editBtn) window.sbEditId = editBtn.dataset.id;
+    
+    const delBtn = e.target.closest('.delete-btn');
+    if (delBtn) window.sbDeleteId = delBtn.dataset.id;
+    
+    const addBtn = e.target.closest('#addBtn, #emptyAddBtn');
+    if (addBtn) window.sbEditId = null;
+  }, true); 
+
+  // 3. Przejmujemy kontrolę nad przyciskiem ZAPISZ
+  setTimeout(() => {
+    const saveBtn = document.getElementById('saveBtn');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+
+    newSaveBtn.addEventListener('click', async () => {
+      const name = document.getElementById('f-name').value;
+      const type = document.getElementById('f-type').value;
+      const expiry = document.getElementById('f-expiry').value;
+      const value = parseFloat(document.getElementById('f-value').value) || 0;
+      const owner = document.getElementById('f-owner').value;
+      const notes = document.getElementById('f-notes').value;
+
+      if (!name || !expiry) {
+        if (typeof showToast === 'function') showToast('Wypełnij wymagane pola (Nazwa, Data)', 'error');
+        return;
+      }
+
+      const payload = { name, item_type: type, expiration_date: expiry, value, owner_name: owner, notes };
+
+      if (window.sbEditId) {
+        await _supabase.from('tracked_items').update(payload).eq('id', window.sbEditId);
+        if (typeof showToast === 'function') showToast('Zaktualizowano w chmurze!', 'success');
+      } else {
+        await _supabase.from('tracked_items').insert([payload]);
+        if (typeof showToast === 'function') showToast('Dodano wpis do bazy!', 'success');
+      }
+
+      if (typeof closeModal === 'function') closeModal();
+      syncSupabase(); 
+    });
+
+    // 4. Przejmujemy kontrolę nad przyciskiem USUŃ
+    const confirmBtn = document.getElementById('confirmBtn');
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    newConfirmBtn.addEventListener('click', async () => {
+      if (window.sbDeleteId) {
+        await _supabase.from('tracked_items').delete().eq('id', window.sbDeleteId);
+        if (typeof showToast === 'function') showToast('Usunięto bezpowrotnie z chmury', 'success');
+        if (typeof closeConfirm === 'function') closeConfirm();
+        syncSupabase();
+      }
+    });
+
+    syncSupabase();
+  }, 200); 
 </script>
 
+  
+</body>
+</html>
